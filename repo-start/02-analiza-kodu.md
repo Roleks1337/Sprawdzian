@@ -43,4 +43,8 @@ jobs:
 ## Pytania
 
 1. Czy job `test` uruchomi się podczas utworzenia pull requestu? Uzasadnij odpowiedź.
-2. Podaj jeden problem logiczny w jobie `docker_smoke`, który utrudni diagnozę błędu, jeżeli smoke test się nie powiedzie.
+Ad.1 Nie, job test nie uruchomi się podczas utworzenia pull requestu. Uzasadnienie: Job test ma warunek if: github.ref == refs/heads/main, który sprawdza, czy gałęź jest główną. Podczas pull requestu wartość github.ref wskazuje na gałąź źródłową PR, a nie na main. Warunek nigdy nie będzie spełniony. Ponadto job test ma zależność needs: lint od joba lint, który również nie uruchomi się dla pull requestów, chyba że warunek zostanie dodany.
+
+1. Podaj jeden problem logiczny w jobie `docker_smoke`, który utrudni diagnozę błędu, jeżeli smoke test się nie powiedzie.
+
+Ad.2 Job docker_smoke próbuje załadować logi z pliku compose.log, który nigdy nie zostanie wygenerowany. Kontener uruchamiany jest przy pomocy docker compose up, ale logi nie są automatycznie kierowane do tego pliku. Jeśli smoke test się nie powiedzie, logi będą puste, co uniemożliwi diagnozę problemu.

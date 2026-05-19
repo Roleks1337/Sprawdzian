@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  - pull_request
+  - push
+  - workflow_dispatch
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+        run: composer install --no-interaction --no-progress
+        run: composer lint
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+        run: composer install --no-interaction --no-progress
+        run: mkdir -p build
+        run: composer test:junit
+        uses: actions/upload-artifact@v4
+        with:
+          path: build/junit.xml
+
+  docker_smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@v4
+        uses: docker/setup-buildx-action@v2
+        run: docker build -t php-docker-actions:ci .
+        run: docker run -d --name test-app -p 8080:8080 php-docker-actions:ci
+        run: |
+          sleep 1
+          curl -fS --retry 5 --retry-delay 1 http://localhost:8080/health

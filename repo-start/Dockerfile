@@ -6,4 +6,4 @@ COPY public ./public
 
 EXPOSE 8080
 
-CMD ["php", "-S", "0.0.0.0:8080", "-t", "pubic"]
+CMD ["php", "-S", "0.0.0.0:8080", "-t", "public"]

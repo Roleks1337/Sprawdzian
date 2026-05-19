@@ -1,0 +1,35 @@
+name: Release Simulation
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    steps:
+      - uses: actions/checkout@v4
+        uses: docker/setup-buildx-action@v2
+        uses: docker/build-push-action@v4
+        with:
+          push: false
+          outputs: type=docker,dest=./image.tar
+        run: gzip -c ./image.tar > ./image.tar.gz
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./image.tar.gz
+        run: docker compose up -d --build
+        run: |
+          sleep 1
+          curl -fS --retry 5 --retry-delay 1 http://localhost:8080/health
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          docker compose logs &> artifacts/compose.log || true
+        shell: bash
+        uses: actions/upload-artifact@v4
+        with:
+          path: artifacts/compose.log
+        run: docker compose down -v || true
+        shell: bash
